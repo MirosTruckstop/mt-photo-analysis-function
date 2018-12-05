@@ -16,3 +16,6 @@
 
 # Virtualenv
 /env/
+
+# Python tests
+*_test.py

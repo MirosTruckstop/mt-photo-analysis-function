@@ -1,5 +1,7 @@
 # MT Photo Analysis Cloud Function
 
+[![Build Status](https://travis-ci.org/MirosTruckstop/mt-photo-analysis-function.svg?branch=master)](https://travis-ci.org/MirosTruckstop/mt-photo-analysis-function)
+
 ## Setup
 
 ### Local setup

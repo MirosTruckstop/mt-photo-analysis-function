@@ -1,20 +1,19 @@
 import base64
+import logging
 from google.cloud import vision
 
-vision_client = vision.ImageAnnotatorClient()
 
-
-def detect_text(image_uri):
-    print('Looking for text in image {}'.format(image_uri))
+def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [str]:
+    logging.debug('Looking for text in image {}'.format(image_uri))
     text_detection_response = vision_client.text_detection({
         'source': {'image_uri': image_uri}
     })
     annotations = text_detection_response.text_annotations
-    if len(annotations) > 0:
-        text = annotations[0].description
-    else:
-        text = ''
-    print('Extracted text {} from image ({} chars).'.format(text, len(text)))
+    texts = []
+    for annotation in annotations:
+        texts.append(annotation.description)
+    logging.debug('Extracted texts \'{}\' from image.'.format(texts))
+    return texts
 
 
 def photo_analysis(data, _context):
@@ -26,4 +25,4 @@ def photo_analysis(data, _context):
     if 'data' not in data:
         return
     name = base64.b64decode(data['data']).decode('utf-8')
-    detect_text(name)
+    detect_text(vision.ImageAnnotatorClient(), name)
