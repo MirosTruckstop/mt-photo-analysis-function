@@ -23,13 +23,18 @@ Requirements
 * gcloud is installed and initialised
 
 1. Enable the required APIs
-    ```
+    ```sh
     gcloud services enable pubsub.googleapis.com
     gcloud services enable cloudfunctions.googleapis.com
     gcloud services enable vision.googleapis.com
     ```
 
-2. Create a Cloud Pub/Sub Topic: `gcloud pubsub topics create photo-analysis-request`
+2. Create a service account
+    ```sh
+    gcloud iam service-accounts create photo-analysis-function --display-name "photo-analysis-function"
+    ```
+
+3. Create a Cloud Pub/Sub Topic: `gcloud pubsub topics create photo-analysis-request`
 
 ### Deploy
 
@@ -38,8 +43,10 @@ Deploy the Cloud Function.
 GCP_PROJECT=YOUR-PROJECT-ID
 GCP_REGION=europe-west1
 GCP_TOPIC=photo-analysis-request
-gcloud --project ${GCP_PROJECT} functions deploy photo_analysis \
+# 'beta' is required to set the service account
+gcloud --project ${GCP_PROJECT} beta functions deploy photo_analysis \
     --runtime python37 \
     --trigger-topic ${GCP_TOPIC} \
-    --region ${GCP_REGION}
+    --region ${GCP_REGION} \
+    --service-account photo-analysis-function@${GCP_PROJECT}.iam.gserviceaccount.com
 ```

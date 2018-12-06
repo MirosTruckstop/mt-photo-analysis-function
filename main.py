@@ -4,7 +4,7 @@ from google.cloud import vision
 
 
 def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [str]:
-    logging.debug('Looking for text in image {}'.format(image_uri))
+    logging.info('Looking for text in image {}'.format(image_uri))
     text_detection_response = vision_client.text_detection({
         'source': {'image_uri': image_uri}
     })
@@ -12,7 +12,7 @@ def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [
     texts = []
     for annotation in annotations:
         texts.append(annotation.description)
-    logging.debug('Extracted texts \'{}\' from image.'.format(texts))
+    logging.info('Extracted texts \'{}\' from image.'.format(texts))
     return texts
 
 
