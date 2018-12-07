@@ -19,11 +19,12 @@ class TestDetextText(unittest.TestCase):
 
     def test_success(self):
         mock_annotations = mock.MagicMock()
-        mock_annotations.text_annotations = self.mock_annotations('some\ntext\nö (e)', 'some\ntext\nö', '(e)')
+        mock_annotations.text_annotations = self.mock_annotations('Some Text\nAnother ö (e)\n', 'Some', 'Text', 'Another',
+                                                                  'ö', '(e)')
         mock_vision_client = mock.MagicMock()
         mock_vision_client.text_detection.return_value = mock_annotations
         result = main.detect_text(mock_vision_client, 'http://example.org/some/image.jpeg')
-        expected = ['some\ntext\nö', '(e)']
+        expected = ['Some Text\nAnother ö (e)\n', 'Some', 'Text', 'Another', 'ö', '(e)']
         self.assertEqual(expected, result)
 
     def test_empty_response(self):
@@ -78,7 +79,7 @@ class TestFunction(unittest.TestCase):
         # Mock vision client
         mock_annotations = mock.MagicMock()
         mock_annotations.text_annotations = TestDetextText.mock_annotations(
-            'some Text Message ö (e)', 'some', 'Text', 'Message', 'ö', '(e)'
+            'some Text\nMessage ö (e)\n', 'some', 'Text', 'Message', 'ö', '(e)'
         )
         mock_vision_client = mock.MagicMock()
         mock_vision_client.text_detection.return_value = mock_annotations
@@ -104,5 +105,6 @@ class TestFunction(unittest.TestCase):
         mock_document.set.assert_called_once_with({
             'uri': 'https://example.org/some/path/to/a/image.jpeg',
             'texts': ['some', 'text', 'message', '(e)'],
+            'raw_texts': 'some Text\nMessage ö (e)\n',
             'updated': datetime.datetime(2018, 12, 7, 23, 41, 11)
         })

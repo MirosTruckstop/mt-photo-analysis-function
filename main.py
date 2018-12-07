@@ -14,7 +14,7 @@ def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [
     })
     annotations = text_detection_response.text_annotations
     texts = []
-    for annotation in annotations[1:]:
+    for annotation in annotations:
         texts.append(annotation.description)
     logging.info('Extracted texts \'{}\' from image.'.format(texts))
     return texts
@@ -48,10 +48,12 @@ def do_photo_anaysis(data: dict, vision_client: vision.ImageAnnotatorClient, fir
     image_uri = base64.b64decode(data).decode('utf-8')
     texts = detect_text(vision_client, image_uri)
     if texts:
-        texts = normalize_text(texts)
+        raw_texts = texts[0]  # The vision API returns the whole raw string at index zero
+        texts = normalize_text(texts[1:])
         data = ({
             'uri': image_uri,
             'texts': texts,
+            'raw_texts': raw_texts,
             'updated': datetime.datetime.now() if not now else now
         })
         store(firestore_client, photo_id(image_uri), data)
