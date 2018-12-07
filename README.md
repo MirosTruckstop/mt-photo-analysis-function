@@ -36,6 +36,8 @@ Requirements
 
 3. Create a Cloud Pub/Sub Topic: `gcloud pubsub topics create photo-analysis-request`
 
+4. (Create a Firestore collection named `photos`)
+
 ### Deploy
 
 Deploy the Cloud Function.
