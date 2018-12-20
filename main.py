@@ -8,7 +8,7 @@ from google.cloud import firestore
 
 
 def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [str]:
-    logging.info('Looking for text in image \'{}\''.format(image_uri))
+    logging.info('Looking for text in image \'%s\'', image_uri)
     text_detection_response = vision_client.text_detection({
         'source': {'image_uri': image_uri}
     })
@@ -16,7 +16,7 @@ def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [
     texts = []
     for annotation in annotations:
         texts.append(annotation.description)
-    logging.info('Extracted texts \'{}\' from image.'.format(texts))
+    logging.info('Extracted texts \'%s\' from image.', texts)
     return texts
 
 
@@ -33,14 +33,14 @@ def photo_id(image_uri: str) -> str:
     return hashlib.md5(image_uri.encode('utf-8')).hexdigest()
 
 
-def store(client: firestore.Client, document: str, data: dict, collection: str='photos'):
-    logging.info('Store data in \'{}\''.format(collection))
+def store(client: firestore.Client, document: str, data: dict, collection: str = 'photos'):
+    logging.info('Store data in \'%s\'', collection)
     doc_ref = client.collection(collection).document(document)
     doc_ref.set(data)
 
 
 def do_photo_anaysis(data: dict, vision_client: vision.ImageAnnotatorClient, firestore_client: firestore.Client,
-                     now: datetime.datetime=None):
+                     now: datetime.datetime = None):
     data = data.get('data')
     if not data:
         return

@@ -19,8 +19,8 @@ class TestDetextText(unittest.TestCase):
 
     def test_success(self):
         mock_annotations = mock.MagicMock()
-        mock_annotations.text_annotations = self.mock_annotations('Some Text\nAnother ö (e)\n', 'Some', 'Text', 'Another',
-                                                                  'ö', '(e)')
+        mock_annotations.text_annotations = self.mock_annotations('Some Text\nAnother ö (e)\n', 'Some', 'Text',
+                                                                  'Another', 'ö', '(e)')
         mock_vision_client = mock.MagicMock()
         mock_vision_client.text_detection.return_value = mock_annotations
         result = main.detect_text(mock_vision_client, 'http://example.org/some/image.jpeg')
@@ -56,6 +56,7 @@ class TestPhotoId(unittest.TestCase):
 
 class TestStore(unittest.TestCase):
 
+    # pylint: disable=no-self-use
     def test_storage(self):
         mock_document = mock.MagicMock()
         mock_document.set = mock.MagicMock()
@@ -75,6 +76,7 @@ class TestStore(unittest.TestCase):
 
 class TestFunction(unittest.TestCase):
 
+    # pylint: disable=no-self-use
     def test_all(self):
         # Mock vision client
         mock_annotations = mock.MagicMock()
