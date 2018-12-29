@@ -43,6 +43,7 @@ Requirements
 Deploy the Cloud Function.
 ```sh
 GCP_PROJECT=YOUR-PROJECT-ID
+WP_HOST=https://YOUR-HOST.ORG
 GCP_REGION=europe-west1
 GCP_TOPIC=photo-analysis-request
 # 'beta' is required to set the service account
@@ -50,5 +51,6 @@ gcloud --project ${GCP_PROJECT} beta functions deploy photo_analysis \
     --runtime python37 \
     --trigger-topic ${GCP_TOPIC} \
     --region ${GCP_REGION} \
+    --set-env-vars WP_HOST=${WP_HOST},WP_JWT=${JWT} \
     --service-account photo-analysis-function@${GCP_PROJECT}.iam.gserviceaccount.com
 ```

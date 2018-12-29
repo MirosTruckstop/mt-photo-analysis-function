@@ -2,6 +2,9 @@ import base64
 import datetime
 import unittest
 from unittest import mock
+from urllib import parse
+
+import httmock
 
 import main
 
@@ -42,15 +45,11 @@ class TestNormalizeText(unittest.TestCase):
         result = main.normalize_text(['', 'a'])
         self.assertEqual([], result)
 
-    def test_to_lower(self):
-        result = main.normalize_text(['HellO', 'WorLd'])
-        self.assertEqual(['hello', 'world'], result)
 
-
-class TestPhotoId(unittest.TestCase):
+class TestHexMd5Hash(unittest.TestCase):
 
     def test_url(self):
-        result = main.photo_id('https://example.org/some/path/to/a/image.jpeg')
+        result = main.hex_md5_hash('https://example.org/some/path/to/a/image.jpeg')
         self.assertEqual('96699843dec8204f4eb0289a30a1f202', result)
 
 
@@ -95,18 +94,38 @@ class TestFunction(unittest.TestCase):
         mock_firestore_client.collection.return_value = mock_collection
 
         data = {
-            'data': base64.b64encode('https://example.org/some/path/to/a/image.jpeg'.encode('utf-8'))
+            'data': base64.b64encode('https://example.org/some/path/to/a/image.jpeg'.encode('utf-8')),
+            'attributes': {
+                'id': '3001'
+            }
         }
 
-        main.do_photo_anaysis(
-            data,
-            vision_client=mock_vision_client,
-            firestore_client=mock_firestore_client,
-            now=datetime.datetime(2018, 12, 7, 23, 41, 11)
-        )
+
+        @httmock.urlmatch(netloc=r'(.*\.)?example\.org$')
+        def wp_mock(url, request):
+            assert url == parse.SplitResult(scheme='https', netloc='example.org',
+                                            path='/wp-json/mt-wp-photo-analysis/v1/text/3001', query='', fragment='')
+            assert request.method == 'PUT'
+            assert request.headers['Authorization'] == 'Bearer 0123'
+            assert request.headers['Content-Type'] == 'application/json'
+            assert request.body == b'{"textAnnotations": "some Text Message (e)"}'
+            return {
+                'status_code': 200,
+                'content': 'OK'
+            }
+
+        with mock.patch.dict('os.environ', {'WP_HOST': 'https://example.org', 'WP_JWT': '0123'}):
+            with httmock.HTTMock(wp_mock):
+                main.do_photo_anaysis(
+                    data,
+                    vision_client=mock_vision_client,
+                    firestore_client=mock_firestore_client,
+                    now=datetime.datetime(2018, 12, 7, 23, 41, 11)
+                )
         mock_document.set.assert_called_once_with({
+            'id': '3001',
             'uri': 'https://example.org/some/path/to/a/image.jpeg',
-            'texts': ['some', 'text', 'message', '(e)'],
+            'texts': ['some', 'Text', 'Message', '(e)'],
             'raw_texts': 'some Text\nMessage ö (e)\n',
             'updated': datetime.datetime(2018, 12, 7, 23, 41, 11)
         })

@@ -1,10 +1,19 @@
+import os
+
 import base64
 import datetime
 import hashlib
 import logging
+import requests
 
 from google.cloud import vision
 from google.cloud import firestore
+
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+class InvalidMassageError(Exception):
+    pass
 
 
 def detect_text(vision_client: vision.ImageAnnotatorClient, image_uri: str) -> [str]:
@@ -25,11 +34,11 @@ def normalize_text(texts: [str]) -> [str]:
     for text in texts:
         if len(text) <= 1:
             continue
-        res.append(text.lower())
+        res.append(text)
     return res
 
 
-def photo_id(image_uri: str) -> str:
+def hex_md5_hash(image_uri: str) -> str:
     return hashlib.md5(image_uri.encode('utf-8')).hexdigest()
 
 
@@ -39,11 +48,32 @@ def store(client: firestore.Client, document: str, data: dict, collection: str =
     doc_ref.set(data)
 
 
-def do_photo_anaysis(data: dict, vision_client: vision.ImageAnnotatorClient, firestore_client: firestore.Client,
+def wordpress_put_texts(data: dict):
+    # pylint: disable=fixme
+    # TODO: Parse dict instead of accessing envs.
+    resp = requests.put(
+        '{host}/wp-json/mt-wp-photo-analysis/v1/text/{id}'.format(host=format(os.environ['WP_HOST']), id=data['id']),
+        headers={
+            'Authorization': 'Bearer {}'.format(os.environ['WP_JWT']),
+            'Content-Type': 'application/json',
+        },
+        json={'textAnnotations': ' '.join(data['texts'])},
+        verify=False)
+    if resp.status_code != 200:
+        logging.warning('%s response from ¸\'%s\': %s', resp.status_code, resp.url, resp.text)
+
+
+def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, firestore_client: firestore.Client,
                      now: datetime.datetime = None):
-    data = data.get('data')
+    data = msg.get('data')
     if not data:
-        return
+        raise InvalidMassageError('message has no data')
+    attributes = msg.get('attributes')
+    if not attributes:
+        raise InvalidMassageError('message has no attributes')
+    image_id = attributes.get('id')
+    if not image_id:
+        raise InvalidMassageError('message has not attribute \'id\'')
 
     image_uri = base64.b64decode(data).decode('utf-8')
     texts = detect_text(vision_client, image_uri)
@@ -51,12 +81,14 @@ def do_photo_anaysis(data: dict, vision_client: vision.ImageAnnotatorClient, fir
         raw_texts = texts[0]  # The vision API returns the whole raw string at index zero
         texts = normalize_text(texts[1:])
         data = ({
+            'id': image_id,
             'uri': image_uri,
             'texts': texts,
             'raw_texts': raw_texts,
             'updated': datetime.datetime.now() if not now else now
         })
-        store(firestore_client, photo_id(image_uri), data)
+        store(firestore_client, hex_md5_hash(image_uri), data)
+        wordpress_put_texts(data)
 
 
 def photo_analysis(data, _context):
