@@ -46,33 +46,6 @@ class TestNormalizeText(unittest.TestCase):
         self.assertEqual([], result)
 
 
-class TestHexMd5Hash(unittest.TestCase):
-
-    def test_url(self):
-        result = main.hex_md5_hash('https://example.org/some/path/to/a/image.jpeg')
-        self.assertEqual('96699843dec8204f4eb0289a30a1f202', result)
-
-
-class TestStore(unittest.TestCase):
-
-    # pylint: disable=no-self-use
-    def test_storage(self):
-        mock_document = mock.MagicMock()
-        mock_document.set = mock.MagicMock()
-        mock_collection = mock.MagicMock()
-        mock_collection.document.return_value = mock_document
-        mock_firestore_client = mock.MagicMock()
-        mock_firestore_client.collection.return_value = mock_collection
-
-        main.store(mock_firestore_client, 'document', {'some key': 'some value'})
-        # Check the correct collection was chosen
-        mock_firestore_client.collection.assert_called_once_with('photos')
-        # Check the correct document was chosen
-        mock_collection.document.assert_called_once_with('document')
-        # Check set method is called with the correct data
-        mock_document.set.assert_called_once_with({'some key': 'some value'})
-
-
 class TestFunction(unittest.TestCase):
 
     # pylint: disable=no-self-use
@@ -84,14 +57,6 @@ class TestFunction(unittest.TestCase):
         )
         mock_vision_client = mock.MagicMock()
         mock_vision_client.text_detection.return_value = mock_annotations
-
-        # Mock firestore client
-        mock_document = mock.MagicMock()
-        mock_document.set = mock.MagicMock()
-        mock_collection = mock.MagicMock()
-        mock_collection.document.return_value = mock_document
-        mock_firestore_client = mock.MagicMock()
-        mock_firestore_client.collection.return_value = mock_collection
 
         data = {
             'data': base64.b64encode('https://example.org/some/path/to/a/image.jpeg'.encode('utf-8')),
@@ -119,13 +84,5 @@ class TestFunction(unittest.TestCase):
                 main.do_photo_anaysis(
                     data,
                     vision_client=mock_vision_client,
-                    firestore_client=mock_firestore_client,
                     now=datetime.datetime(2018, 12, 7, 23, 41, 11)
                 )
-        mock_document.set.assert_called_once_with({
-            'id': '3001',
-            'uri': 'https://example.org/some/path/to/a/image.jpeg',
-            'texts': ['some', 'Text', 'Message', '(e)'],
-            'raw_texts': 'some Text\nMessage ö (e)\n',
-            'updated': datetime.datetime(2018, 12, 7, 23, 41, 11)
-        })

@@ -2,15 +2,14 @@ import os
 
 import base64
 import datetime
-import hashlib
 import logging
 import requests
 
 from google.cloud import vision
-from google.cloud import firestore
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 class InvalidMassageError(Exception):
     pass
@@ -38,16 +37,6 @@ def normalize_text(texts: [str]) -> [str]:
     return res
 
 
-def hex_md5_hash(image_uri: str) -> str:
-    return hashlib.md5(image_uri.encode('utf-8')).hexdigest()
-
-
-def store(client: firestore.Client, document: str, data: dict, collection: str = 'photos'):
-    logging.info('Store data in \'%s\'', collection)
-    doc_ref = client.collection(collection).document(document)
-    doc_ref.set(data)
-
-
 def wordpress_put_texts(data: dict):
     # pylint: disable=fixme
     # TODO: Parse dict instead of accessing envs.
@@ -63,8 +52,7 @@ def wordpress_put_texts(data: dict):
         logging.warning('%s response from ¸\'%s\': %s', resp.status_code, resp.url, resp.text)
 
 
-def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, firestore_client: firestore.Client,
-                     now: datetime.datetime = None):
+def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, now: datetime.datetime = None):
     data = msg.get('data')
     if not data:
         raise InvalidMassageError('message has no data')
@@ -87,7 +75,6 @@ def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, fire
             'raw_texts': raw_texts,
             'updated': datetime.datetime.now() if not now else now
         })
-        store(firestore_client, hex_md5_hash(image_uri), data)
         wordpress_put_texts(data)
 
 
@@ -99,6 +86,5 @@ def photo_analysis(data, _context):
     """
     do_photo_anaysis(
         data,
-        vision_client=vision.ImageAnnotatorClient(),
-        firestore_client=firestore.Client()
+        vision_client=vision.ImageAnnotatorClient()
     )
