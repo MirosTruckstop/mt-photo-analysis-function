@@ -46,8 +46,7 @@ def wordpress_put_texts(data: dict):
             'Authorization': 'Bearer {}'.format(os.environ['WP_JWT']),
             'Content-Type': 'application/json',
         },
-        json={'textAnnotations': ' '.join(data['texts'])},
-        verify=False)
+        json={'textAnnotations': ' '.join(data['texts'])})
     if resp.status_code != 200:
         logging.warning('%s response from ¸\'%s\': %s', resp.status_code, resp.url, resp.text)
 
