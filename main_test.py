@@ -65,7 +65,6 @@ class TestFunction(unittest.TestCase):
             }
         }
 
-
         @httmock.urlmatch(netloc=r'(.*\.)?example\.org$')
         def wp_mock(url, request):
             assert url == parse.SplitResult(scheme='https', netloc='example.org',
