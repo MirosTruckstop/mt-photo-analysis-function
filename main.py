@@ -1,3 +1,4 @@
+import json
 import os
 
 import base64
@@ -37,13 +38,13 @@ def normalize_text(texts: [str]) -> [str]:
     return res
 
 
-def wordpress_put_texts(data: dict):
+def wordpress_put_texts(data: dict, jwt: str):
     # pylint: disable=fixme
     # TODO: Parse dict instead of accessing envs.
     resp = requests.put(
         '{host}/wp-json/mt-wp-photo-analysis/v1/text/{id}'.format(host=format(os.environ['WP_HOST']), id=data['id']),
         headers={
-            'Authorization': 'Bearer {}'.format(os.environ['WP_JWT']),
+            'Authorization': 'Bearer {}'.format(jwt),
             'Content-Type': 'application/json',
         },
         json={'textAnnotations': ' '.join(data['texts'])})
@@ -51,10 +52,7 @@ def wordpress_put_texts(data: dict):
         logging.warning('%s response from ¸\'%s\': %s', resp.status_code, resp.url, resp.text)
 
 
-def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, now: datetime.datetime = None):
-    data = msg.get('data')
-    if not data:
-        raise InvalidMassageError('message has no data')
+def decode_msg(msg: dict):
     attributes = msg.get('attributes')
     if not attributes:
         raise InvalidMassageError('message has no attributes')
@@ -62,19 +60,39 @@ def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, now:
     if not image_id:
         raise InvalidMassageError('message has not attribute \'id\'')
 
-    image_uri = base64.b64decode(data).decode('utf-8')
-    texts = detect_text(vision_client, image_uri)
+    data = msg.get('data')
+    if not data:
+        raise InvalidMassageError('message has no data')
+    data_encoded = base64.b64decode(data).decode('utf-8')
+    try:
+        data_json = json.loads(data_encoded)
+    except json.decoder.JSONDecodeError as err:
+        raise InvalidMassageError('message data is no valid json: \'%s\'' % err)
+    if 'image_uri' not in data_json:
+        raise InvalidMassageError('message data does not contain \'image_uri\'')
+    if 'jwt' not in data_json:
+        raise InvalidMassageError('message data does not contain \'jwt\'')
+    return {
+        'image_id': image_id,
+        'image_uri': data_json['image_uri'],
+        'jwt': data_json['jwt']
+    }
+
+
+def do_photo_anaysis(msg: dict, vision_client: vision.ImageAnnotatorClient, now: datetime.datetime = None):
+    msg_data = decode_msg(msg)
+    texts = detect_text(vision_client, msg_data['image_uri'])
     if texts:
         raw_texts = texts[0]  # The vision API returns the whole raw string at index zero
         texts = normalize_text(texts[1:])
         data = ({
-            'id': image_id,
-            'uri': image_uri,
+            'id': msg_data['image_id'],
+            'uri': msg_data['image_uri'],
             'texts': texts,
             'raw_texts': raw_texts,
             'updated': datetime.datetime.now() if not now else now
         })
-        wordpress_put_texts(data)
+        wordpress_put_texts(data, msg_data['jwt'])
 
 
 def photo_analysis(data, _context):
