@@ -11,3 +11,4 @@
 # Tests and documentation
 *_test.py
 README.md
+setup.cfg
