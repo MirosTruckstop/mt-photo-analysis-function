@@ -5,6 +5,7 @@
 .gcloudignore
 .git/
 .gitignore
+.pylintrc
 .travis.yml
 
 # Tests and documentation
