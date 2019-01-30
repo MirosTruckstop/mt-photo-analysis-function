@@ -36,8 +36,6 @@ Requirements
 
 3. Create a Cloud Pub/Sub Topic: `gcloud pubsub topics create photo-analysis-request`
 
-4. (Create a Firestore collection named `photos`)
-
 ### Deploy
 
 Deploy the Cloud Function.
@@ -51,6 +49,6 @@ gcloud --project ${GCP_PROJECT} beta functions deploy photo_analysis \
     --runtime python37 \
     --trigger-topic ${GCP_TOPIC} \
     --region ${GCP_REGION} \
-    --set-env-vars WP_HOST=${WP_HOST},WP_JWT=${JWT} \
+    --set-env-vars WP_HOST=${WP_HOST} \
     --service-account photo-analysis-function@${GCP_PROJECT}.iam.gserviceaccount.com
 ```
